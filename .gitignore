@@ -1,0 +1,37 @@
+# Root ignore
+
+# Node at repo root (if npm was run here)
+node_modules/
+
+# Env files
+.env
+.env.*
+
+# Python virtual envs
+.venv/
+venv/
+env/
+backend/env/
+backend/.venv/
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+
+# Python caches
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# Django static/media (if generated locally)
+backend/staticfiles/
+backend/media/
+
+# Windows reserved filename accidentally appearing
+NUL
