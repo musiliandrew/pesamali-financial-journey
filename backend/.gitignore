@@ -1,0 +1,45 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.env.*
+.venv/
+venv/
+env/
+.python-version
+
+# Django stuff
+*.log
+*.pot
+*.pyc
+*.mo
+
+# SQLite (if ever used locally)
+db.sqlite3
+
+# Static/media
+staticfiles/
+media/
+
+# Testing / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache/
+.pytest_cache/
+.mypy_cache/
+
+# IDE/editor
+.vscode/
+.idea/
+.DS_Store
+
+# Misc
+*.orig
+*.swp
+*.swo
