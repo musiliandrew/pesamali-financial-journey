@@ -1,0 +1,451 @@
+You are an expert mobile-first UI developer and product designer. Implement a production-ready MVP of PesaMali — a social, educational board game about financial literacy. Build the app as a mobile-first, responsive web app (React + Vite recommended) with pixel-perfect 2D board animations and optional depth (pseudo-3D shadows). Focus on performance, accessibility, and retention mechanics (notifications, streaks, friends, societies). Use mock data provided below. The app must be intuitive: during gameplay users only play — no profile fiddling, no deep menus.
+
+Deliverables:
+
+Fully functional frontend with mocked API endpoints (and an API client) that demonstrates all flows.
+
+Component library (reusable React components) + design tokens (colors, spacing, typography).
+
+Mobile-first responsive layouts that gracefully expand to tablet/desktop.
+
+Animations: dice physics, token hops, card pick/frost animations, confetti, progress bars.
+
+Screen designs & interactions: Onboarding → Profile → Lobby → Match Setup → Card Picker modal → Friends modal → Game board → Dice modal → Card reveal modal → Post-game stats & sharing.
+
+End-to-end mocked flows using the supplied mock data and deterministic RNG seed for reproducibility.
+
+Unit & integration acceptance tests (high-level) for core game logic and UI states.
+
+README describing how to swap mocked backend with real backend (WebSocket game state).
+
+Constraints & priorities:
+
+Mobile-first (target: iPhone 14 width) but responsive.
+
+During a live match, only game controls are interactive. No nav distraction.
+
+Server-authoritative state must be emulated with mock server (use deterministic game engine module).
+
+Visual polish matters: prioritize clear affordances and emotional micro-feedback.
+
+Implement everything below exactly. If any rule conflicts appear, prefer the explicit rules in the specification. When you finish, provide a link to a live preview and a zip build.
+
+Begin implementation.
+
+— end master prompt —
+
+FULL PRODUCT SPEC (Reference for the AI dev)
+
+Below is the complete brief the AI must follow while implementing the MVP.
+
+Table of contents (quick)
+
+Pages & modals (mobile-first)
+
+Components & UI patterns
+
+UX rules & constraints during gameplay
+
+Board layout & token logic
+
+Card systems & decks (assets, spending, savings, playing)
+
+Game state machine (turns, dice, returns)
+
+Mock data (JSON)
+
+API endpoints (mock)
+
+Animations & micro-feedback
+
+Design tokens & assets
+
+Accessibility & performance
+
+Acceptance criteria & test cases
+
+Handoff & scaling notes
+
+1) Pages & Modals (mobile first) — list + purpose
+
+Design each page for small screens (360–430px width), then scale up.
+
+Pages
+
+Onboarding / Welcome (mobile) — explain PesaMali value prop, quick tutorial carousel, sign-up (mock auth).
+
+Profile (one-tap access from lobby) — name, profession, avatar, society, Pesa profile points, achievements, streaks.
+
+Lobby (main hub) — players, quick stats, join/create match, friends feed, notifications icon, shops.
+
+Match Setup (modal/overlay from Lobby) — choose match size (2–4), vs AI toggle, pick profession pool filters, seat assignments.
+
+Game (primary full-screen) — board view, player HUD (points, savings, liabilities), dice area, action button.
+
+Post-game / Report screen — stats: cashflow timeline, assets returns, savings achievements, liabilities resolved, share badges.
+
+Shop (modal or page) — avatars, skins, frames (cosmetic purchases with mock currency).
+
+Societies (page) — society leaderboard, join/create.
+
+Settings (page) — notifications toggle, sound, accessibility.
+
+Modals / Overlays
+
+Card Picker modal (alternating picks for Asset Cards; visually frost picked).
+
+Friends modal (friend invite, send Q/A to friend to protect streak, sacrifice points).
+
+Card Reveal modal (playing / spending / savings card with details).
+
+Dice roll modal (animated roll with ability to “tap” to roll).
+
+Confirm buy Dream modal (conditions & final purchase flow).
+
+Timeout/AFK modal (AI takeover, reconnect options).
+
+2) Components & UI patterns (reusable)
+
+Each component must accept props and expose events. Build in React style.
+
+BoardGrid — renders 8x10 grid, supports orientation flips for each player. Props: tiles[], activePlayer, tokenPositions[], highlightTiles[].
+
+Tile — single square: index, label, yellowStrip boolean, assetSpace boolean, overlay badge.
+
+Token — color, ownerId, size, zIndex control; visual dominance when player=you.
+
+DiceRoller — 2 dice, tap-to-roll, server RNG input, rolling animation, result event.
+
+Card — card front/back, type (asset/spending/saving/playing), cost, payload data, pickup animation.
+
+CardPickerGrid — shows available assets with pick state (available, frozen, picked-by-which-player).
+
+HUD — player mini-panel showing avatar, profession, on-hand points, savings, liabilities, selected asset icons.
+
+ProgressBar — Dream progress visualization (with milestone ticks).
+
+NotificationBell — in-lobby notifications list.
+
+FriendsList — online/offline badges, invite button, quick support actions.
+
+Confetti — particle system triggered on asset return/win.
+
+Toast — micro-messages (casts for fines, returns).
+
+AnalyticsChart — post-game sparkline + bar breakdown.
+
+UI Patterns:
+
+Frosted / disabled state for picked cards (70% opacity + lock overlay).
+
+Dominant player tokens: full color vs 40% desaturated for others.
+
+Clear CTA color for “Roll” and “End Turn”.
+
+3) UX rules & constraints during gameplay (critical)
+
+During an active match the only accessible actions: roll dice, select token to move, confirm buy asset (when landing on buyable asset and eligible), accept/decline to claim yellow card effect (rare), and end turn (if required).
+
+No navigation away from game canvas until match end (mobile—use in-game menu overlay if user must access settings).
+
+Visual emphasis on the token expected to land on a yellow-strip: glow + pulse. If player intentionally avoids it, apply -20 fine with instant toast + animation.
+
+Auto-move when only one legal move exists or player timeout (configurable 20s) — show countdown visually (small ring around Roll button).
+
+Players choose 2 assets during pre-game (pick alternates). A final “confirm picks” CTA appears only after both picks are chosen.
+
+4) Board layout & token logic
+Board organisation
+
+8 rows × 10 cols (80 tiles), indexed 1..80 following a continuous path. Default visual path is serpentine (left → right on row 1, right → left on row 2); however, for clarity, implement visual arrows and small indices on tiles.
+
+The user’s playable direction must appear natural on mobile: current player’s forward direction highlighted with subtle arrows along the next n tiles.
+
+The tile index pairs you provided are used for start/symmetric origins and label strips: use them to visually place grouped starting tokens.
+
+Token placement rules
+
+Each player has 4 tokens, all start on their assigned origin tile(s). If a seat shares an origin with another player, tokens overlay but with z-ordering: current player's tokens are on top and full color; opponent tokens are in back and faded.
+
+When rolling dice, frontend computes hypothetical landings for each token and displays small ghosted preview path numbers; player chooses token to move; if multiple tokens valid and user doesn’t choose before timer, system picks logically (first movable).
+
+Yellow-strip logic: if any token's landing tile is yellow, mark that token as high priority. If player moves a different token, apply -20 pts immediately.
+
+Asset purchase & return mapping (front-end rules)
+
+When a player chooses to buy an asset, show a modal with:
+
+Purchase Cost
+
+Profit per Spot Return
+
+Current on-hand points
+
+Post-purchase projected savings balance and required future tile windows
+
+Asset return windows are configured server-side; front-end reads them to display projected first-return tile range.
+
+Only one asset return can be resolved per landing; if multiple assets are eligible for return, show deterministic queue order (earliest purchased first). If several assets would return simultaneously, the game queues the results with micro-animation per asset.
+
+5) Card systems & decks
+Deck types
+
+AssetCardDeck — pre-game pick pool (unique instances). Each card: id, name, purchase_cost, profit_per_return, max_returns (5), description, visual.
+
+SpendingDeck — each player is dealt 3 at start (random). Each card: id, name, line_items (list of {label, cost}), total_cost.
+
+SavingsDeck — each player gets 3 (random). Card includes save_threshold, bonus_if_met, description.
+
+PlayingDeck (yellow-strip draws) — draws on landing on yellow tile: id, effect (delta points), type (profit/loss/conditional).
+
+Card interactions
+
+Spending: increases liabilities until cleared (subtract from on-hand if possible).
+
+Savings: players allocate on-hand points into savings; once they hit threshold, apply bonus; show progress in HUD.
+
+Asset returns: triggered when landing on old yellow-strip and conditions met (see mapping). Each return increases player on-hand points by profit_per_return.
+
+Max returns: track per-asset instances and remove from active returns when returns_collected >= 5.
+
+6) Game state machine (simplified authoritative model)
+
+High-level finite state machine:LOBBY -> PRE_GAME (card picks) -> IN_PROGRESS (turn loop) -> END_GAME -> POST_GAME
+....Turn loop: PLAYER_TURN_ENTER:
+  - Start timer
+  - STATE: WAIT_FOR_ROLL
+PLAYER_ROLL:
+  - Roll 2 dice (server RNG)
+  - Show preview for movable tokens
+  - If only one move -> AUTO_MOVE
+  - Else -> WAIT_FOR_TOKEN_SELECT
+PLAYER_MOVE_RESOLVE:
+  - Move token step-by-step with animation
+  - If land on yellow-strip -> draw playing card -> resolve effect
+  - Check asset return eligibility -> queue return(s)
+  - Check buy asset eligibility (if tile is asset space and unowned and player has >= purchase cost and player.turn>=11 rule)
+  - Apply spending/saving triggers if tile indicates
+PLAYER_TURN_EXIT:
+  - Update HUD
+  - Check victory conditions
+  - Pass turn to next player
+Victory check (on PLAYER_TURN_EXIT):
+
+Has purchased the 2 pre-selected assets
+
+Savings >= 500
+
+Liabilities == 0
+
+All spending/savings cards resolved
+
+Ability to pay Dream cost (on-hand + savings + last asset sell value if allowed). If true, allow buy-dream flow.
+
+RNG:
+
+Deterministic RNG seed per match for reproducible replays. Mock server returns dice results.
+
+Network/resume:
+
+If disconnect, player has X seconds to rejoin; otherwise AI takeover. Show a reconnect banner.
+
+7) Mock Data (JSON) — pasteable and to be used by mock server : {
+  "users": [
+    {"id":"u1","displayName":"NalaEducator","profession":"Teacher","sub":"Highschool","avatar":"avatar_teacher_1","pesaProfile":2400,"friends":["u2","u3"],"societyId":"s1","streak":5},
+    {"id":"u2","displayName":"SamTheCoder","profession":"Engineer","sub":"Software","avatar":"avatar_engineer_1","pesaProfile":1700,"friends":["u1"],"societyId":"s2","streak":2},
+    {"id":"u3","displayName":"MunyaWriter","profession":"Writer","sub":"Novelist","avatar":"avatar_writer_1","pesaProfile":980,"friends":["u1"],"societyId":null,"streak":8}
+  ],
+  "assetsPool": [
+    {"id":"a1","name":"Campus Printing Shop","purchase_cost":600,"profit_per_return":320,"max_returns":5},
+    {"id":"a2","name":"Online Tasking Platform","purchase_cost":450,"profit_per_return":220,"max_returns":5},
+    {"id":"a3","name":"Monetized YouTube Channel","purchase_cost":400,"profit_per_return":170,"max_returns":5},
+    {"id":"a4","name":"Peer to Peer Lending Fund","purchase_cost":400,"profit_per_return":220,"max_returns":5},
+    {"id":"a5","name":"Cryptocurrency Portfolio","purchase_cost":500,"profit_per_return":240,"max_returns":5}
+  ],
+  "spendingDeckSample": [
+    {"id":"sp1","name":"Monthly Household Bills","line_items":[{"label":"Electricity","cost":30},{"label":"Water","cost":25},{"label":"Groceries","cost":60},{"label":"Gas Refill","cost":20},{"label":"House Help","cost":40}],"total":175},
+    {"id":"sp2","name":"Birthday Party","line_items":[{"label":"Tent & Chairs","cost":30},{"label":"Food","cost":45},{"label":"DJ","cost":25},{"label":"Invites","cost":10}],"total":110}
+  ],
+  "savingsDeckSample": [
+    {"id":"sv1","name":"The Holiday Hustle","description":"Earned some cash at a relative's shop. Save over 90 pts to earn bonus.","save_threshold":91,"bonus_if_met":100,"bonus_condition":"if_owns_asset"},
+    {"id":"sv2","name":"Family Emergency Prep","description":"Prepared for a family emergency. Save>=150 to get 200 bonus if deposits>=180","save_threshold":150,"bonus_if_met":200}
+  ],
+  "playingDeckSample": [
+    {"id":"p1","label":"+60 Financial Education","delta":60,"type":"gain"},
+    {"id":"p2","label":"-40 Overspending","delta":-40,"type":"loss"},
+    {"id":"p3","label":"-60 Income Loss","delta":-60,"type":"loss"},
+    {"id":"p4","label":"+20 Insurance Cover","delta":20,"type":"gain"}
+  ],
+  "boardConfig": {
+    "tiles": [ {"index":1,"isYellow":true,"isAssetSpace":false}, {"index":2,"isYellow":false,"isAssetSpace":false} /* ... up to 80 */ ]
+  },
+  "dreams": [
+    {"id":"d1","name":"Quit 9-5","cost":1200},
+    {"id":"d2","name":"Hillside Mansion","cost":1300},
+    {"id":"d3","name":"Smart Fund Project","cost":1400}
+  ]
+}
+...Note: The board tiles array should be filled for indices 1..80; mock uses isYellow flags based on desired spacing (use roughly every 6–8 tiles).
+
+8) Mock API endpoints (HTTP + WebSocket) — schema only
+
+HTTP (mock server)
+
+POST /auth/login — returns user token (mock)
+
+GET /users/me — profile object
+
+GET /lobby — public matches, friends, notifications
+
+POST /match/create — body: {size, vsAi, dreamId} -> returns matchId
+
+POST /match/:id/join — join match
+
+GET /assets/pool — returns assets pool
+
+GET /decks — returns deck summaries
+
+WebSocket (game state authoritative)
+Socket events:
+
+Client -> Server:
+
+join_match {matchId, userId}
+
+pick_asset {assetId}
+
+roll {}
+
+select_token {tokenId}
+
+buy_asset {assetId}
+
+resolve_card_ack {cardId}
+
+Server -> Client:
+
+game_state {full game snapshot}
+
+dice_result {die1, die2, seed}
+
+move_event {tokenId, path[], landedTile}
+
+card_draw {card}
+
+asset_return {assetId, amount, newBalance}
+
+turn_change {nextPlayerId}
+
+game_end {winnerId, report}
+
+RNG note: server returns dice_result and a seed used for deterministic replay.
+
+9) Animations & micro-feedback (timings & feel)
+
+All animation durations tuned for mobile snappiness.
+
+Dice roll: 600ms spin + 300ms settle. Use simple physics easing (easeOutQuart). Random small camera shake (50ms).
+
+Token hop: each tile hop 120ms, slight elevation 12px, shadow scale during hop. For multi-tile movement chain, animate per hop with 60ms overlap.
+
+Card flip: 350ms flip + 200ms reveal.
+
+Pick/frost animation: pick tap → scale 0.98 (80ms), frost overlay fade to .6 opacity (200ms), lock icon slide-in (120ms).
+
+Yellow-strip glow: subtle pulsing ring (800ms loop), small particle sparkle when landing.
+
+Asset return popup: quick confetti burst (350ms) + +points increment counter (animated +number rising 700ms).
+
+Fine & penalty toast: red flash (100ms) + shake (150ms).
+
+Win celebration: full-screen confetti (2s), animated progress bar to 100%, share buttons slide-in.
+
+Micro-feedback design:
+
+Small incremental sounds (tap, coin, pop) — optional in settings; always accessible for mute.
+
+Haptic triggers (mobile) for dice roll and win — call navigator.vibrate with short pattern.
+
+10) Design tokens & assets
+
+Colors (hex)
+
+Primary: #0E6FFF (cta)
+
+Accent / Success: #28C76F
+
+Danger: #FF4D4F
+
+Background primary: #0F1724 (dark) or #F8FAFC (light mode)
+
+Board tile: base #FFFFFF with yellow strip accent #FFEA7A
+
+Frost overlay: rgba(15,15,15,0.6)
+
+Typography
+
+Headline: Inter / 600 / 18–22 px
+
+Body: Inter / 400 / 14 px
+
+UI small: Inter / 400 / 12 px
+
+Spacing
+
+Base 8px grid: 8, 12, 16, 24, 32
+
+Assets
+
+Avatars: 48px circular for HUD; 96px large in lobby.
+
+Token sizes: mobile: 28px diameter; tablet: 40px.
+
+Dice UI: 120x120 modal on mobile.
+
+Card size (picker): 140x210 mobile card.
+
+Provide SVGs and Lottie animations for micro-interactions. Export assets at 1x, 2x, 3x.
+
+11) Accessibility & performance
+
+All interactive elements reachable by keyboard; aria-labels for dice, cards, buy buttons, token choices.
+
+Color contrast >= 4.5:1 for important text.
+
+Reduce motion toggle: respect prefers-reduced-motion.
+
+Performance: lazy-load non-critical assets, use GPU-accelerated transforms for token movement, bundle split routes.
+
+12) Acceptance criteria & test cases
+
+Onboarding...New user sees 3-slide tutorial, can sign up and land in Lobby.
+
+Lobby :Lobby lists friends, shows active matches, able to create a match.Pressing “Create Match” opens Match Setup modal.Pre-game Asset Pick : Asset picker alternates picks; picked cards become frosted & unclickable., User must pick exactly 2 assets to start. Dice & Moves:Dice roll produces deterministic result from mock server seed., Preview of landing tile(s) shows correctly for each token., Moving token animates hop path and resolves playing card effects appropriately., Yellow-strip mechanics =>Landing on yellow triggers playing card draw & resolves effect., If player avoids yellow while a token preview would land there, -20 fine is applied. Asset return:Asset returns happen only on landing on old yellow strip and respect max_returns=5 rule., Multiple simultaneous returns are queued and shown sequentially.,Win: Victory is only possible when all must rules satisfied: 2 assets bought, savings >= 500, liabilities cleared, spending & savings cards resolved., Post-game report displays correct aggregated metrics. Social=>Friend invites function in Lobby and invite acceptance works (mock)., Friends can “sacrifice points” to save a friend’s streak (modal flows; update mock balances). Edge cases =>Disconnection triggers AI takeover after timeout, state continues., Simultaneous events resolve deterministically..13) Handoff & scaling notes (for moving from MVP to prod)
+
+Replace mock WebSocket with server-authoritative game engine (FastAPI/Node) using deterministic RNG seed logs for replay and anti-cheat.
+
+Persist game logs & events to DB for dispute resolution.
+
+Add server-side matchmaking + seasonal Dream rollout scheduler.
+
+Add monetization flow (cosmetics) with proper purchase receipts & non-consumable items.
+
+Optional: Example UI copy snippets (for use in modals)
+
+Card pick CTA: “Pick this asset (cost 600 pts) — profit per return: 320 pts”
+
+Yellow strip tooltip: “Landing here triggers a life event. Don’t skip — skipping costs 20 pts.”
+
+Win modal headline: “Dream Achieved — You’ve purchased ‘Quit 9–5’!”
+
+Streak gift: “Donate 50 points to save your friend’s streak? This is non-refundable.”
+
+Developer hints / patterns (for AI dev)
+
+Use an ECS-like game engine module for local deterministic simulation of token moves and triggers.
+
+Keep the authoritative event log as the single source of truth in mock server; UI subscribes to sockets and replays events.
+
+Keep UI pure: render from state snapshots — reduce imperative UI state. Use immutability for state diffs so replays are easy.
+
+Final checklist (what to produce & deliver)
